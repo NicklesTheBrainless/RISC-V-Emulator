@@ -8,4 +8,6 @@ public interface Memory {
     void writeMemory(int addr, byte[] data);
 
     void setZeroMemory(int addr, long size);
+
+    int getSize();
 }

@@ -1,7 +1,7 @@
 
 public class CPU {
 
-    private static final double CPU_CLOCK_SPEED = 64;                 // in Hertz
+    private static final double CPU_CLOCK_SPEED = 64;
     public static final long   NANOSECONDS_PER_SECOND = 1_000_000_000;
 
     private static final int   STACK_START = 1024;                    // unterste 1 KiB
@@ -16,7 +16,13 @@ public class CPU {
     public CPU(Memory mem) {
         this.mem = mem;
 
-        this.regs[2] = STACK_START;
+        int sp = mem.getSize() - 16;
+        sp &= ~0xF;    // 16-byte alignment
+
+        mem.writeMemory(sp, new byte[] {0, 0, 0, 0, 0, 0, 0, 0});    // argc = 0
+        mem.writeMemory(sp + 8, new byte[] {0, 0, 0, 0, 0, 0, 0, 0});    // argv = NULL
+
+        this.regs[2] = sp;
     }
 
     public void run(long entry) {
@@ -37,9 +43,7 @@ public class CPU {
             lastTime = currentTime;
 
             if (delta >= 1) {
-
                 step();
-
                 delta--;
             }
         }
@@ -47,27 +51,23 @@ public class CPU {
 
     public void step() {
         int instCode = mem.read4Bytes(counter);   // rohen 32-Bit Code holen
-        String binInstCode = Integer.toBinaryString(instCode);
-        //System.out.println("Bin Inst Code: " + binInstCode);
+        System.out.println("Binary Instruction Code: " + Integer.toBinaryString(instCode));
         Instruction inst = decodeInstruction(instCode);
 
         System.out.println(counter);
 
-        counter += 4;// PC auf die nächste Instr. stellen
-        Switcherino.enactInstruction(this, instCode, inst); // Befehl ausführen
 
+        InstructionExecutor.executeInstruction(this, instCode, inst);
+        counter += 4;
     }
 
-
-
-    // shitf ammount
     private Instruction decodeInstruction(int instCode) {
 
         int opcode =  instCode & 0b0111_1111; // Bits 0-6
         int funct3 = (instCode >>> 12) & 0b111; // Bits 12-14y
         int funct7 = (instCode >>> 25) & 0b111_1111;// Bits 25-31
         if (opcode == Instruction.SLLI.opcode || opcode == Instruction.SRLI.opcode || opcode == Instruction.SRAI.opcode)
-            funct7 = (instCode >>> 26) & 0b111_1111;// Bits 26-31 bei RV64I immediate shift
+            funct7 = (instCode >>> 26) & 0b11_1111;// Bits 26-31 bei RV64I immediate shift
 
         System.out.println();
         System.out.println(counter);
