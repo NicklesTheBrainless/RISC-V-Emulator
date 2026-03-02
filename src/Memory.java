@@ -1,7 +1,8 @@
 public interface Memory {
 
     byte readByte(int addr);
-    int read4Bytes(long addr);
+    short read2Bytes(int addr);
+    int read4Bytes(int addr);
     long read8Bytes(int addr);
 
     void writeByte(int addr, byte data);

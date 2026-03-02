@@ -14,19 +14,28 @@ public class SimpleMemory implements Memory {
         return bytes[addr];
     }
 
-    /* Read 32 bit little-endian, bytes are treated as unsigned */
-    public int read4Bytes(long addr) {
+    @Override
+    public short read2Bytes(int addr) {
         if (addr < 0 || addr >= bytes.length)
             throw new IllegalArgumentException("Address out of range: " + addr);
 
-        int a0 = Byte.toUnsignedInt(bytes[(int) addr]);
-        int a1 = Byte.toUnsignedInt(bytes[(int) addr + 1]);
-        int a2 = Byte.toUnsignedInt(bytes[(int) addr + 2]);
-        int a3 = Byte.toUnsignedInt(bytes[(int) addr + 3]);
+        int b0 = Byte.toUnsignedInt(bytes[addr]);
+        int b1 = Byte.toUnsignedInt(bytes[addr + 1]);
+        return (short) (b0 | (b1 << 8));
+    }
+
+
+    public int read4Bytes(int addr) {
+        if (addr < 0 || addr >= bytes.length)
+            throw new IllegalArgumentException("Address out of range: " + addr);
+
+        int a0 = Byte.toUnsignedInt(bytes[addr]);
+        int a1 = Byte.toUnsignedInt(bytes[addr + 1]);
+        int a2 = Byte.toUnsignedInt(bytes[addr + 2]);
+        int a3 = Byte.toUnsignedInt(bytes[addr + 3]);
         return a0 | (a1 << 8) | (a2 << 16) | (a3 << 24);
     }
 
-    /* Read 64 bit little-endian, bytes are treated as unsigned */
     @Override
     public long read8Bytes(int addr) {
         if (addr < 0 || addr >= bytes.length)

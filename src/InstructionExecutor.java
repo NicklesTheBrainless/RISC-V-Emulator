@@ -56,14 +56,14 @@ public class InstructionExecutor {
                 if (Long.compareUnsigned(x1, x2) >= 0) cpu.counter = (int) (cpu.counter + immB);
             }
 
-            /*  Loads (I-Type)  */
-            case LB -> cpu.regs[rd] = signExtend8(cpu.mem.readByte((int) (x1 + immI)));
+            // Loads (I-Type)
+            case LB  -> cpu.regs[rd] = signExtend8(cpu.mem.readByte((int) (x1 + immI)));
             case LBU -> cpu.regs[rd] = Byte.toUnsignedInt(cpu.mem.readByte((int) (x1 + immI)));
-            case LH -> cpu.regs[rd] = signExtend16(half(cpu, x1 + immI));
-            case LHU -> cpu.regs[rd] = half(cpu, x1 + immI) & 0xFFFF;
-            case LW -> cpu.regs[rd] = signExtend32(cpu.mem.read4Bytes((int) (x1 + immI)));
+            case LH  -> cpu.regs[rd] = signExtend16(cpu.mem.read2Bytes((int) (x1 + immI)));
+            case LHU -> cpu.regs[rd] = cpu.mem.read2Bytes((int) (x1 + immI)) & 0xFFFF;
+            case LW  -> cpu.regs[rd] = signExtend32(cpu.mem.read4Bytes((int) (x1 + immI)));
 
-            /*  Stores (S-Type)  */
+            // Stores (S-Type)
             case SB -> {
                 long rawAddr = x1 + immS;
                 System.out.println("x1 " + x1 + " ");
@@ -74,7 +74,7 @@ public class InstructionExecutor {
             case SH -> storeHalf(cpu, x1 + immS, x2);
             case SW -> storeWord(cpu, x1 + immS, x2);
 
-            /*  ALU-I  */
+            //  ALU-I
             case ADDI -> cpu.regs[rd] = x1 + immI;
             case SLTI -> cpu.regs[rd] = (x1 < immI) ? 1 : 0;
             case SLTIU -> cpu.regs[rd] = (Long.compareUnsigned(x1, immI) < 0) ? 1 : 0;
@@ -82,12 +82,12 @@ public class InstructionExecutor {
             case ORI -> cpu.regs[rd] = x1 | immI;
             case ANDI -> cpu.regs[rd] = x1 & immI;
 
-            /*  Shift-I  */
+            //  Shift-I
             case SLLI -> cpu.regs[rd] = x1 << shiftAmount;
             case SRLI -> cpu.regs[rd] = x1 >>> shiftAmount;
             case SRAI -> cpu.regs[rd] = x1 >> shiftAmount;
 
-            /*  ALU-R  */
+            //  ALU-R
             case ADD -> cpu.regs[rd] = x1 + x2;
             case SUB -> cpu.regs[rd] = x1 - x2;
             case SLL -> cpu.regs[rd] = x1 << (x2 & 0x3F);
@@ -112,9 +112,12 @@ public class InstructionExecutor {
 
 
     // TODO: check and fix sign extend function
-    private static long signExtend(long value, int bits) {
-        long mask = 1L << (bits - 1);
-        return (value ^ mask) - mask;
+    public static long signExtend(long value, int bitLength) {
+        if (bitLength <= 0 || bitLength > 64)
+            throw new IllegalArgumentException("bitLength must be 1 to 64");
+
+        long shift = 64 - bitLength;
+        return (value << shift) >> shift;
     }
 
     private static long signExtend8(int v) {
@@ -127,14 +130,6 @@ public class InstructionExecutor {
 
     private static long signExtend32(int v) {
         return signExtend(v & 0xFFFF_FFFFL, 32);
-    }
-
-    // TODO: check this
-    private static int half(CPU cpu, long addr) {
-        // zwei Bytes einlesen (Little-Endian)
-        int lo = Byte.toUnsignedInt(cpu.mem.readByte((int) addr));
-        int hi = Byte.toUnsignedInt(cpu.mem.readByte((int) addr + 1));
-        return lo | (hi << 8);
     }
 
     private static void storeHalf(CPU cpu, long addr, long data) {
