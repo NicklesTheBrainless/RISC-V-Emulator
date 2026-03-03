@@ -28,7 +28,7 @@ public class ElfParser {
 
             int elfClass = elfHeader.get(EI_CLASS);
             int elfData  = elfHeader.get(EI_DATA);
-            elfHeader.position(0x12);
+            elfHeader.position(0x11);
             int machine = elfHeader.getShort() & 0xFFFF;
 
             if (elfData != ELFDATA_LITTLE_ENDIAN)
@@ -56,6 +56,7 @@ public class ElfParser {
 
         elfHeader.position(0x18);
         long entry = elfHeader.getLong() + memOffset;
+        System.out.println("Program (Memory) Entry: " + entry);
         long phFilePos = elfHeader.getLong();   // die position zu wo die ganzen program header hinter einander sind
 
         elfHeader.position(0x36);
@@ -80,7 +81,7 @@ public class ElfParser {
 
             ph.getInt();     // p_flags (not used)
             long segFilePos = ph.getLong();    // p_offset (address of the segment in the elf file)
-            System.out.println("Program Header Address: 0x" + Long.toHexString(segFilePos));
+            System.out.println("Program Header File Position: 0x" + Long.toHexString(segFilePos));
             long segMemAddr = ph.getLong();    // p_vaddr (start address in our virtual memory for the program header)
             System.out.println("Program Header VMemory Address: 0x" + Long.toHexString(segMemAddr));
             ph.getLong();    // p_paddr (not used)
@@ -97,9 +98,9 @@ public class ElfParser {
 
             // set zero memory, if it exists
             if (segMemSize > segFileSize)
-                memory.setZeroMemory((int) (segMemAddr + memOffset + segFileSize), segMemSize - segFileSize);
+                memory.setZeroMemory((int) (segMemAddr + memOffset + segFileSize), (int) (segMemSize - segFileSize));
         }
-        System.out.println("Program Entry: " + entry);
+
         return Math.toIntExact(entry);
     }
 

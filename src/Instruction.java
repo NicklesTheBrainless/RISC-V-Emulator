@@ -44,6 +44,12 @@ public enum Instruction {
     SRLI  (0b0010011, 0b101, 0b0000000),
     SRAI  (0b0010011, 0b101, 0b0100000),
 
+    // RV64 ALU Immediate (I-Type)
+    ADDIW (0b0011011, 0b000, -1),
+    SLLIW (0b0011011, 0b001, 0b0000000),
+    SRLIW (0b0011011, 0b101, 0b0000000),
+    SRAIW (0b0011011, 0b101, 0b0100000),
+
     // ALU Register (R-Type)
     ADD   (0b0110011, 0b000, 0b0000000),
     SUB   (0b0110011, 0b000, 0b0100000),
@@ -56,12 +62,6 @@ public enum Instruction {
     OR    (0b0110011, 0b110, 0b0000000),
     AND   (0b0110011, 0b111, 0b0000000),
 
-    // RV64 ALU Immediate (I-Type)
-    ADDIW (0b0011011, 0b000, -1),
-    SLLIW (0b0011011, 0b001, 0b0000000),
-    SRLIW (0b0011011, 0b101, 0b0000000),
-    SRAIW (0b0011011, 0b101, 0b0100000),
-
     // RV64 ALU Registers (R-Type)
     ADDW  (0b0111011, 0b000, 0b0000000),
     SUBW  (0b0111011, 0b000, 0b0100000),
@@ -70,7 +70,7 @@ public enum Instruction {
     SRAW  (0b0111011, 0b101, 0b0100000),
 
     // System
-    ECALL (0b1110011, 0b000, 0b0000000),
+    ECALL (0b1110011, -1, -1),
     EBREAK(0b1110011, 0b000, 0b0000001);
 
 

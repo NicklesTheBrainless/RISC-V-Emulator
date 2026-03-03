@@ -1,13 +1,13 @@
 
 public class CPU {
 
-    private static final double CPU_CLOCK_SPEED = 64;
+    private static final double CPU_CLOCK_SPEED = 128;
     private static final long   NANOSECONDS_PER_SECOND = 1_000_000_000;
 
     long[] regs = new long[32];
     Memory mem;
 
-    long counter;
+    long pc;
 
     boolean halt = false;
 
@@ -25,7 +25,7 @@ public class CPU {
 
     public void run(long entry) {
 
-        counter = entry;
+        pc = entry;
 
         double interval = (double) NANOSECONDS_PER_SECOND / CPU_CLOCK_SPEED;
         double delta = 0;
@@ -48,12 +48,12 @@ public class CPU {
     }
 
     public void step() {
-        int instCode = mem.read4Bytes(Math.toIntExact(counter));
-        System.out.println("Binary Instruction Code at " + counter + ": " + Integer.toBinaryString(instCode));
+        int instCode = mem.read4Bytes(Math.toIntExact(pc));
+        System.out.println("Binary Instruction Code at " + pc + ": " + Integer.toBinaryString(instCode));
         Instruction inst = decodeInstruction(instCode);
 
         InstructionExecutor.executeInstruction(this, instCode, inst);
-        counter += 4;
+        pc += 4;
     }
 
     private Instruction decodeInstruction(int instCode) {

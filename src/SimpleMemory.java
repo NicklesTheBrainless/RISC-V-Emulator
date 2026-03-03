@@ -6,6 +6,8 @@ public class SimpleMemory implements Memory {
         bytes = new byte[size];
     }
 
+
+
     @Override
     public byte readByte(int addr) {
         if (addr < 0 || addr >= bytes.length)
@@ -23,7 +25,6 @@ public class SimpleMemory implements Memory {
         int b1 = Byte.toUnsignedInt(bytes[addr + 1]);
         return (short) (b0 | (b1 << 8));
     }
-
 
     public int read4Bytes(int addr) {
         if (addr < 0 || addr >= bytes.length)
@@ -52,6 +53,8 @@ public class SimpleMemory implements Memory {
         return b0 | (b1 << 8) | (b2 << 16) | (b3 << 24) | (b4 << 32) | (b5 << 40) | (b6 << 48) | (b7 << 56);
     }
 
+
+
     @Override
     public void writeByte(int addr, byte data) {
         if (addr < 0 || addr >= bytes.length)
@@ -59,6 +62,40 @@ public class SimpleMemory implements Memory {
 
         bytes[addr] = data;
     }
+
+    @Override
+    public void write2Bytes(int addr, short data) {
+        writeMemory(addr, new byte[] {
+                (byte) (data & 0xFF),
+                (byte) ((data >> 8) & 0xFF)
+        });
+    }
+
+    @Override
+    public void write4Bytes(int addr, int data) {
+        writeMemory(addr, new byte[] {
+                (byte) (data & 0xFF),
+                (byte) ((data >> 8) & 0xFF),
+                (byte) ((data >> 16) & 0xFF),
+                (byte) ((data >> 24) & 0xFF)
+        });
+    }
+
+    @Override
+    public void write8Bytes(int addr, long data) {
+        writeMemory(addr, new byte[] {
+                (byte) (data & 0xFF),
+                (byte) ((data >> 8) & 0xFF),
+                (byte) ((data >> 16) & 0xFF),
+                (byte) ((data >> 24) & 0xFF),
+                (byte) ((data >> 32) & 0xFF),
+                (byte) ((data >> 40) & 0xFF),
+                (byte) ((data >> 48) & 0xFF),
+                (byte) ((data >> 56) & 0xFF)
+        });
+    }
+
+
 
     @Override
     public void writeMemory(int addr, byte[] data) {
@@ -69,7 +106,7 @@ public class SimpleMemory implements Memory {
     }
 
     @Override
-    public void setZeroMemory(int addr, long size) {
+    public void setZeroMemory(int addr, int size) {
         for (int i = 0; i < size; i++)
             bytes[addr + i] = 0;
     }

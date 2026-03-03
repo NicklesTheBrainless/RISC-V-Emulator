@@ -17,103 +17,126 @@ public class InstructionExecutor {
         long x1 = cpu.regs[rs1];
         long x2 = cpu.regs[rs2];
 
-        long nextPC = cpu.counter + 4;
+        long nextPC = cpu.pc + 4;
 
         switch (inst) {
 
             // U-Type
             case LUI -> cpu.regs[rd] = immU;
-            case AUIPC -> cpu.regs[rd] = cpu.counter + immU;
+            case AUIPC -> cpu.regs[rd] = cpu.pc + immU;
 
             // J-Type
             case JAL -> {
                 cpu.regs[rd] = nextPC;
-                cpu.counter = (int) (cpu.counter + immJ);
+                cpu.pc = (int) (cpu.pc + immJ);
             }
             case JALR -> {
                 cpu.regs[rd] = nextPC;
-                cpu.counter = (int) ((x1 + immI) & ~1L);
+                cpu.pc = (int) ((x1 + immI) & ~1L);
             }
 
             //  B-Type
             case BEQ -> {
-                if (x1 == x2) cpu.counter = (int) (cpu.counter + immB);
+                if (x1 == x2) cpu.pc = (int) (cpu.pc + immB);
             }
             case BNE -> {
-                if (x1 != x2) cpu.counter = (int) (cpu.counter + immB);
+                if (x1 != x2) cpu.pc = (int) (cpu.pc + immB);
             }
             case BLT -> {
-                if (x1 < x2) cpu.counter = (int) (cpu.counter + immB);
+                if (x1 <  x2) cpu.pc = (int) (cpu.pc + immB);
             }
             case BGE -> {
-                if (x1 >= x2) cpu.counter = (int) (cpu.counter + immB);
+                if (x1 >= x2) cpu.pc = (int) (cpu.pc + immB);
             }
             case BLTU -> {
-                if (Long.compareUnsigned(x1, x2) < 0) cpu.counter = (int) (cpu.counter + immB);
+                if (Long.compareUnsigned(x1, x2) <  0) cpu.pc = (int) (cpu.pc + immB);
             }
             case BGEU -> {
-                if (Long.compareUnsigned(x1, x2) >= 0) cpu.counter = (int) (cpu.counter + immB);
+                if (Long.compareUnsigned(x1, x2) >= 0) cpu.pc = (int) (cpu.pc + immB);
             }
 
             // Loads (I-Type)
-            case LB  -> cpu.regs[rd] = signExtend8(cpu.mem.readByte((int) (x1 + immI)));    // load a signed byte (sign extend)
+            case LB  -> cpu.regs[rd] = cpu.mem.readByte  ((int) (x1 + immI));
+            case LH  -> cpu.regs[rd] = cpu.mem.read2Bytes((int) (x1 + immI));
+            case LW  -> cpu.regs[rd] = cpu.mem.read4Bytes((int) (x1 + immI));
             case LD  -> cpu.regs[rd] = cpu.mem.read8Bytes((int) (x1 + immI));
-
-            case LWU -> cpu.regs[rd] =
-                    cpu.mem.read4Bytes((int) (x1 + immI)) & 0xFFFF_FFFFL;
-            case LBU -> cpu.regs[rd] = Byte.toUnsignedInt(cpu.mem.readByte((int) (x1 + immI)));
-            case LH  -> cpu.regs[rd] = signExtend16(cpu.mem.read2Bytes((int) (x1 + immI)));
-            case LHU -> cpu.regs[rd] = cpu.mem.read2Bytes((int) (x1 + immI)) & 0xFFFF;
-            case LW  -> cpu.regs[rd] = signExtend32(cpu.mem.read4Bytes((int) (x1 + immI)));
+            case LBU -> cpu.regs[rd] = Byte   .toUnsignedLong(cpu.mem.readByte  ((int) (x1 + immI)));
+            case LHU -> cpu.regs[rd] = Short  .toUnsignedLong(cpu.mem.read2Bytes((int) (x1 + immI)));
+            case LWU -> cpu.regs[rd] = Integer.toUnsignedLong(cpu.mem.read4Bytes((int) (x1 + immI)));
 
             // Stores (S-Type)
-            case SB -> {
-                long rawAddr = x1 + immS;
-                System.out.println("x1 " + x1 + " ");
-                int  addr = (int) (rawAddr & 0xFFFF_FFFFL);
-                cpu.mem.writeByte(addr, (byte) x2);
-
-            }
-            case SH -> storeHalf(cpu, x1 + immS, x2);
-            case SW -> storeWord(cpu, x1 + immS, x2);
+            case SB -> cpu.mem.writeByte  ((int) (x1 + immS), (byte) x2);
+            case SH -> cpu.mem.write2Bytes((int) (x1 + immS), (byte) x2);
+            case SW -> cpu.mem.write4Bytes((int) (x1 + immS), (byte) x2);
+            case SD -> cpu.mem.write8Bytes((int) (x1 + immS), x2);
 
             //  ALU-I
-            case ADDI -> cpu.regs[rd] = x1 + immI;
-            case SLTI -> cpu.regs[rd] = (x1 < immI) ? 1 : 0;
+            case ADDI  -> cpu.regs[rd] = x1 + immI;
+            case SLTI  -> cpu.regs[rd] = (x1 < immI) ? 1 : 0;
             case SLTIU -> cpu.regs[rd] = (Long.compareUnsigned(x1, immI) < 0) ? 1 : 0;
-            case XORI -> cpu.regs[rd] = x1 ^ immI;
-            case ORI -> cpu.regs[rd] = x1 | immI;
-            case ANDI -> cpu.regs[rd] = x1 & immI;
+            case XORI  -> cpu.regs[rd] = x1 ^ immI;
+            case ORI   -> cpu.regs[rd] = x1 | immI;
+            case ANDI  -> cpu.regs[rd] = x1 & immI;
 
             //  Shift-I
             case SLLI -> cpu.regs[rd] = x1 << shiftAmount;
             case SRLI -> cpu.regs[rd] = x1 >>> shiftAmount;
             case SRAI -> cpu.regs[rd] = x1 >> shiftAmount;
 
+            // RV64 ALU Immediate (I-Type)
+            case ADDIW -> cpu.regs[rd] = (int) (x1 + immI);
+            case SLLIW -> cpu.regs[rd] = (int) x1 << (shiftAmount & 0b1_1111);
+            case SRLIW -> cpu.regs[rd] = (int) x1 >>> (shiftAmount & 0b1_1111);
+            case SRAIW -> cpu.regs[rd] = (int) x1 >> (shiftAmount & 0b1_1111);
+
             //  ALU-R
-            case ADD -> cpu.regs[rd] = x1 + x2;
-            case SUB -> cpu.regs[rd] = x1 - x2;
-            case SLL -> cpu.regs[rd] = x1 << (x2 & 0b11_1111);
-            case SLT -> cpu.regs[rd] = (x1 < x2) ? 1 : 0;
+            case ADD  -> cpu.regs[rd] = x1 + x2;
+            case SUB  -> cpu.regs[rd] = x1 - x2;
+            case SLL  -> cpu.regs[rd] = x1 << (x2 & 0b11_1111);
+            case SLT  -> cpu.regs[rd] = (x1 < x2) ? 1 : 0;
             case SLTU -> cpu.regs[rd] = (Long.compareUnsigned(x1, x2) < 0) ? 1 : 0;
-            case XOR -> cpu.regs[rd] = x1 ^ x2;
-            case SRL -> cpu.regs[rd] = x1 >>> (x2 & 0b11_1111);
-            case SRA -> cpu.regs[rd] = x1 >> (x2 &0b11_1111);
-            case OR -> cpu.regs[rd] = x1 | x2;
-            case AND -> cpu.regs[rd] = x1 & x2;
+            case XOR  -> cpu.regs[rd] = x1 ^ x2;
+            case SRL  -> cpu.regs[rd] = x1 >>> (x2 & 0b11_1111);
+            case SRA  -> cpu.regs[rd] = x1 >> (x2 & 0b11_1111);
+            case OR   -> cpu.regs[rd] = x1 | x2;
+            case AND  -> cpu.regs[rd] = x1 & x2;
 
-            // TODO: this shit
-            /*  System  */
+            case ADDW -> {
+                int result = (int) x1 + (int) x2;
+                cpu.regs[rd] = result;
+            }
+            case SUBW -> {
+                int result = (int) x1 - (int) x2;
+                cpu.regs[rd] = result;
+            }
+            case SLLW -> {
+                int result = (int) x1 << ((int) x2 & 0b1_1111);
+                cpu.regs[rd] = result;
+            }
+            case SRLW -> {
+                int result = (int) x1 >>> ((int) x2 & 0b1_1111);
+                cpu.regs[rd] = result;
+            }
+            case SRAW -> {
+                int result = (int) x1 >> ((int) x2 & 0b1_1111);
+                cpu.regs[rd] = result;
+            }
+
+            /* TODO: System  */
             case ECALL, EBREAK -> {
-                System.out.println("HALT HALT HALT");
+                if (inst == Instruction.EBREAK)
+                    System.err.println("BREAK MY LEGS");
+                System.out.println("Test done:    " + Test.currentTest);
                 cpu.halt = true;
-            }    // Minimal-Handling
+            }
 
-            default -> System.err.println("ehmmmmmmmmmmmmmmm whjat in the name of fish happenmenmed= ");
+            default -> System.err.println("Instruction NOT in switch (impossible)!");
         }
 
         cpu.regs[0] = 0;
     }
+
+
 
     private static long getImmB(int instCode) {
         int bit12     = (instCode >>> 31) & 1;
@@ -139,25 +162,4 @@ public class InstructionExecutor {
         return (value << shift) >> shift;
     }
 
-    private static long signExtend8(int v) {
-        return signExtend(v & 0xFF, 8);
-    }
-
-    private static long signExtend16(int v) {
-        return signExtend(v & 0xFFFF, 16);
-    }
-
-    private static long signExtend32(int v) {
-        return signExtend(v & 0xFFFF_FFFFL, 32);
-    }
-
-    private static void storeHalf(CPU cpu, long addr, long data) {
-        cpu.mem.writeByte((int) addr, (byte) (data & 0xFF));
-        cpu.mem.writeByte((int) addr + 1, (byte) ((data >> 8) & 0xFF));
-    }
-
-    private static void storeWord(CPU cpu, long addr, long data) {
-        byte[] w = {(byte) (data & 0xFF), (byte) ((data >> 8) & 0xFF), (byte) ((data >> 16) & 0xFF), (byte) ((data >> 24) & 0xFF)};
-        cpu.mem.writeMemory((int) addr, w);
-    }
 }
