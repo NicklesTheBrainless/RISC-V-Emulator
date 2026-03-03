@@ -8,12 +8,11 @@ public class InstructionExecutor {
 
         int shiftAmount = (instCode >>> 20) & 0x3F;                 // 6-Bit shift amount (RV64)
 
-        // TODO: check all of this and make readable
-        long immI = signExtend(instCode >>> 20, 12);          // I-Type
-        long immS = signExtend(((instCode >>> 7) & 0x1F) | ((instCode >>> 25) << 5), 12); // S-Type
-        long immU = instCode & 0xFFFFF000;           // U-Type (kein sign-ext)
-        long immB = signExtend(((instCode >>> 7) & 0x1) << 11 | ((instCode >>> 8) & 0xF) << 1 | ((instCode >>> 25) & 0x3F) << 5 | ((instCode >>> 31) & 0x1) << 12, 13);    // B-Type
-        long immJ = signExtend(((instCode >>> 12) & 0xFF) << 12 | ((instCode >>> 20) & 0x1) << 11 | ((instCode >>> 21) & 0x3FF) << 1 | ((instCode >>> 31) & 0x1) << 20, 21);    // J-Type
+        long immI = signExtend(instCode >>> 20, 12);
+        long immS = signExtend(((instCode >>> 7) & 0b1_1111) | ((instCode >>> 25) << 5), 12);
+        long immU = instCode & 0xFFFFF000;
+        long immB = getImmB(instCode);
+        long immJ = getImmJ(instCode);
 
         long x1 = cpu.regs[rs1];
         long x2 = cpu.regs[rs2];
@@ -57,7 +56,7 @@ public class InstructionExecutor {
             }
 
             // Loads (I-Type)
-            case LB  -> cpu.regs[rd] = signExtend8(cpu.mem.readByte((int) (x1 + immI)));
+            case LB  -> cpu.regs[rd] = signExtend8(cpu.mem.readByte((int) (x1 + immI)));    // load a signed byte (sign extend)
             case LBU -> cpu.regs[rd] = Byte.toUnsignedInt(cpu.mem.readByte((int) (x1 + immI)));
             case LH  -> cpu.regs[rd] = signExtend16(cpu.mem.read2Bytes((int) (x1 + immI)));
             case LHU -> cpu.regs[rd] = cpu.mem.read2Bytes((int) (x1 + immI)) & 0xFFFF;
@@ -90,12 +89,12 @@ public class InstructionExecutor {
             //  ALU-R
             case ADD -> cpu.regs[rd] = x1 + x2;
             case SUB -> cpu.regs[rd] = x1 - x2;
-            case SLL -> cpu.regs[rd] = x1 << (x2 & 0x3F);
+            case SLL -> cpu.regs[rd] = x1 << (x2 & 0b11_1111);
             case SLT -> cpu.regs[rd] = (x1 < x2) ? 1 : 0;
             case SLTU -> cpu.regs[rd] = (Long.compareUnsigned(x1, x2) < 0) ? 1 : 0;
             case XOR -> cpu.regs[rd] = x1 ^ x2;
-            case SRL -> cpu.regs[rd] = x1 >>> (x2 & 0x3F);
-            case SRA -> cpu.regs[rd] = x1 >> (x2 & 0x3F);
+            case SRL -> cpu.regs[rd] = x1 >>> (x2 & 0b11_1111);
+            case SRA -> cpu.regs[rd] = x1 >> (x2 &0b11_1111);
             case OR -> cpu.regs[rd] = x1 | x2;
             case AND -> cpu.regs[rd] = x1 & x2;
 
@@ -110,9 +109,23 @@ public class InstructionExecutor {
         cpu.regs[0] = 0;
     }
 
+    private static long getImmB(int instCode) {
+        int bit12     = (instCode >>> 31) & 1;
+        int bit11     = (instCode >>> 7)  & 1;
+        int bits10_5  = (instCode >>> 25) & 0b11_1111;
+        int bits4_1   = (instCode >>> 8)  & 0b1111;
+        return signExtend((bit12 << 12) | (bit11 << 11) | (bits10_5 << 5) | (bits4_1  << 1) , 13);
+    }
 
-    // TODO: check and fix sign extend function
-    public static long signExtend(long value, int bitLength) {
+    private static long getImmJ(int instCode) {
+        int bit20     = (instCode >>> 31) & 1;
+        int bits19_12 = (instCode >>> 12) & 0b1111_1111;
+        int bit11     = (instCode >>> 20) & 1;
+        int bits10_1  = (instCode >>> 21) & 0b11_1111_1111;
+        return signExtend((bit20 << 20) | (bits19_12 << 12) | (bit11 << 11) | (bits10_1 << 1), 21);
+    }
+
+    private static long signExtend(long value, int bitLength) {
         if (bitLength <= 0 || bitLength > 64)
             throw new IllegalArgumentException("bitLength must be 1 to 64");
 
