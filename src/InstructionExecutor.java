@@ -6,7 +6,7 @@ public class InstructionExecutor {
         int rs1 = (instCode >>> 15) & 0x1F;
         int rs2 = (instCode >>> 20) & 0x1F;
 
-        int shiftAmount = (instCode >>> 20) & 0x3F;                 // 6-Bit shift amount (RV64)
+        int shiftAmount = (instCode >>> 20) & 0b11_1111;    // 6-bit shift amount (RV64)
 
         long immI = signExtend(instCode >>> 20, 12);
         long immS = signExtend(((instCode >>> 7) & 0b1_1111) | ((instCode >>> 25) << 5), 12);
@@ -57,6 +57,10 @@ public class InstructionExecutor {
 
             // Loads (I-Type)
             case LB  -> cpu.regs[rd] = signExtend8(cpu.mem.readByte((int) (x1 + immI)));    // load a signed byte (sign extend)
+            case LD  -> cpu.regs[rd] = cpu.mem.read8Bytes((int) (x1 + immI));
+
+            case LWU -> cpu.regs[rd] =
+                    cpu.mem.read4Bytes((int) (x1 + immI)) & 0xFFFF_FFFFL;
             case LBU -> cpu.regs[rd] = Byte.toUnsignedInt(cpu.mem.readByte((int) (x1 + immI)));
             case LH  -> cpu.regs[rd] = signExtend16(cpu.mem.read2Bytes((int) (x1 + immI)));
             case LHU -> cpu.regs[rd] = cpu.mem.read2Bytes((int) (x1 + immI)) & 0xFFFF;
@@ -104,6 +108,8 @@ public class InstructionExecutor {
                 System.out.println("HALT HALT HALT");
                 cpu.halt = true;
             }    // Minimal-Handling
+
+            default -> System.err.println("ehmmmmmmmmmmmmmmm whjat in the name of fish happenmenmed= ");
         }
 
         cpu.regs[0] = 0;
